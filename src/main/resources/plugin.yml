@@ -1,0 +1,8 @@
+name: ahoimen
+version: '${version}'
+main: take0111.ohaimen.Ahoimen
+api-version: 1.19
+commands:
+  dg:
+  withdraw:
+  deposit:

@@ -1,0 +1,115 @@
+package take0111.ohaimen;
+import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.economy.EconomyResponse;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.Objects;
+import java.util.UUID;
+
+public class VaultManager {
+
+    String prefix = "§e[§bMZN§e] §e";
+    private final JavaPlugin plugin;
+
+    public VaultManager(JavaPlugin plugin) {
+        this.plugin = plugin;
+        setupEconomy();
+    }
+
+    public static Economy economy = null;
+
+    private void setupEconomy() {
+        plugin.getLogger().info("setupEconomy");
+        if (plugin.getServer().getPluginManager().getPlugin("Vault") == null) {
+            plugin.getLogger().warning("Vaultが入っていません！");
+            return;
+        }
+        RegisteredServiceProvider<Economy> rsp = plugin.getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            plugin.getLogger().warning("Can't get vault service");
+            return;
+        }
+        economy = rsp.getProvider();
+        plugin.getLogger().info("Vaultの連携が完了しました。");
+    }
+
+    public double getBal(UUID uuid) {
+        return economy.getBalance(Bukkit.getOfflinePlayer(uuid).getPlayer());
+    }
+    public String getJpyBal(UUID uuid) {
+        long money = (long) getBal(uuid);
+
+        if(money < 10000){
+            return String.valueOf(money);
+        }
+
+        if(money < 100000000){
+            long man = (long) (money/10000);
+            String left = String.valueOf(money).substring(String.valueOf(money).length()-4);
+            if(Long.parseLong(left) == 0){
+                return man + "万";
+            }
+            return man + "万" + Long.parseLong(left);
+        }
+
+        if(money < 100000000000L){
+            long oku = (long) (money/100000000);
+            String man = String.valueOf(money).substring(String.valueOf(money).length() -8);
+            String te = man.substring(0, 4);
+            String left = String.valueOf(money).substring(String.valueOf(money).length() -4);
+            if(Long.parseLong(te)  == 0){
+                if( Long.parseLong(left) == 0){
+                    return oku + "億";
+                }else{
+                    return oku + "億"+ Long.parseLong(left);
+                }
+            }else{
+                if( Long.parseLong(left) == 0){
+                    return oku + "億" + Long.parseLong(te) + "万";
+                }
+            }
+            return oku + "億" + Long.parseLong(te) + "万" + Long.parseLong(left);
+        }
+        return String.valueOf(money);
+    }
+
+    public void showJpyBal(UUID uuid) {
+        OfflinePlayer p = Bukkit.getOfflinePlayer(uuid).getPlayer();
+        String money = getJpyBal(uuid);
+        Objects.requireNonNull(Objects.requireNonNull(p).getPlayer()).sendMessage(prefix + "あなたの所持金は " + money + "円です");
+    }
+
+    public void showBal(UUID uuid) {
+        OfflinePlayer p = Bukkit.getOfflinePlayer(uuid).getPlayer();
+        double money = getBal(uuid);
+        Objects.requireNonNull(Objects.requireNonNull(p).getPlayer()).sendMessage(prefix + "あなたの所持金は " + (long) money + "円です");
+    }
+
+    public boolean withdraw(Player player, double money) {
+        OfflinePlayer p = Bukkit.getOfflinePlayer(player.getUniqueId());
+        EconomyResponse resp = economy.withdrawPlayer(p, money);
+        if (resp.transactionSuccess()) {
+            if (p.isOnline()) {
+                Objects.requireNonNull(p.getPlayer()).sendMessage(prefix + (long) money + "円引き出しました");
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public boolean deposit(Player player, double money) {
+        OfflinePlayer p = Bukkit.getOfflinePlayer(player.getUniqueId());
+        EconomyResponse resp = economy.depositPlayer(p, money);
+        if (resp.transactionSuccess()) {
+            if (p.isOnline()) {
+                Objects.requireNonNull(p.getPlayer()).sendMessage(prefix + (long) money + "円受取りました");
+            }
+            return true;
+        }
+        return false;
+    }
+}
